@@ -22,18 +22,53 @@
 ****************************************************************************/
 
 #include "ntpresponsemanager.h"
-#include "ntpresponser.h"
+//#include "ntpresponser.h"
+#include "settloader4matilda.h"
+#include "sharedmemorymanager.h"
 
 //----------------------------------------------------------------------
-NTPResponseManager::NTPResponseManager(const bool &enVerboseMode, const QDateTime &dtRelease, QObject *parent) : QObject(parent)
+NTPResponseManager::NTPResponseManager(const bool &enVerboseMode, const QDateTime &dtRelease, const bool &enShMem, QObject *parent) : QObject(parent)
 {
     verboseMode = enVerboseMode;
-    queueMaxSize = 1000;
     this->dtRelease = dtRelease;
-    secsInQueue = 25;
-    maximumThreads = 50;
     activeThreads = 0;
+    allowSharedMemory = enShMem;
 }
+//----------------------------------------------------------------------
+QByteArray NTPResponseManager::getArrDateTimeStamp(const QDateTime &dt)
+{
+    QByteArray a = QByteArray::fromHex(QByteArray::number( QDateTime(QDate(1900, 1, 1), QTime(0,0,0,0), Qt::UTC).secsTo(dt), 16).rightJustified(8, '0') +
+                                       QByteArray::number( (quint32)((quint32)0xFFFFFFFF/(quint32)1000) * (quint32)dt.time().msec() , 16).rightJustified(8, '0'));
+
+    if(a.length() != 8){
+
+        qDebug() << "getArrDateTimeStamp err " << QByteArray::number( QDateTime(QDate(1900, 1, 1), QTime(0,0,0,0), Qt::UTC).secsTo(dt), 16).rightJustified(8, '0')
+                 << QDateTime(QDate(1900, 1, 1), QTime(0,0,0,0), Qt::UTC).secsTo(dt)
+                 <<  dt.time().msec() << ((quint32)0xFFFFFFFF/(quint32)1000) * dt.time().msec()
+                 << QByteArray::number( (((quint64)dt.time().msec() * (quint64)1000000 ) << 32)/(quint64)1000000000, 16).rightJustified(8, '0')
+                 << dt.time().msec();
+        a.clear();
+        a = QByteArray::fromHex(a.rightJustified(16,'0'));
+    }
+    return a;
+}
+//----------------------------------------------------------------------
+
+QByteArray NTPResponseManager::getCurrentNtpTimeLeftPart(const QByteArray &dtReadArr, const QByteArray &dtRemoteArr)
+{
+    /*
+     * 0x24,    // No warning / Version 4 / Server (packed bitfield)
+     * 3,       // Stratum 3 server
+     * 3,       // Polling interval
+     * 0xE9,     // Precision in log2 seconds (18 is 1 microsecond)
+     * 0,0,0,0, // Delay to reference clock (we have PPS, so effectively zero)
+     * 0,0,0,1, // Jitter of reference clock (the PPS is rated to +/- 50ns)
+     * LOCL // uncalibrated local clock     'GPS0, // Reference ID - we are using a GPS receiver
+    */
+    return QByteArray::fromHex("24 03 03   E9  00000000  00000001 ") + "LOCL" + dtReadArr + dtRemoteArr + dtReadArr;
+}
+
+
 //----------------------------------------------------------------------
 void NTPResponseManager::addThisHost2queue(QHostAddress sender, quint16 port, QByteArray datagram, QDateTime dtReadUtc)
 {
@@ -58,19 +93,17 @@ void NTPResponseManager::addThisHost2queue(QHostAddress sender, quint16 port, QB
         RemNtpUdpClient client;
         client.sender = sender;
         client.port = port;
-        client.remDtArr = remDtArr;
-        client.dtReadUtc = dtReadUtc;
+        client.leftArr = getCurrentNtpTimeLeftPart(getArrDateTimeStamp(dtReadUtc), remDtArr);
+
         hashQueueDt.insert(key, lastCurrDt);
         hashQueue.insert(key, client);
         queueList.append(key);
 
+        emit add2ipHistory(sender, dtReadUtc, dtRemote);
+
     }
     else if(verboseMode)
         qDebug() << "dtRemote is not valid " << dtRemote << sender << port ;
-
-
-
-
 }
 //----------------------------------------------------------------------
 void NTPResponseManager::checkQueue()
@@ -78,6 +111,11 @@ void NTPResponseManager::checkQueue()
     lastCurrDt = QDateTime::currentDateTimeUtc();
     bool addMsecs = (activeThreads >= maximumThreads);
 
+    QList<QHostAddress> lclntip;
+    QList<quint16> lclntport;
+    QList<QByteArray> lclntleftarr;
+
+    quint32 counter = 0;
     for( ; activeThreads < maximumThreads && !queueList.isEmpty(); ){
         if(hashQueueDt.value(queueList.first()).secsTo(lastCurrDt) > secsInQueue){
             if(verboseMode)
@@ -86,12 +124,16 @@ void NTPResponseManager::checkQueue()
             continue;
         }
         RemNtpUdpClient client = hashQueue.take(queueList.takeFirst());
-
-        NtpResponser *r = new NtpResponser(client.sender, client.port, client.remDtArr, client.dtReadUtc , verboseMode, dtRelease);
         activeThreads++;
-        connect(r, SIGNAL(destroyed(QObject*)), this, SLOT(onResponserDestr()) );
-        r->uCanStartThread();
+        lclntip.append(client.sender);
+        lclntport.append(client.port);
+        lclntleftarr.append(client.leftArr);
+        createdObjectCounter++;
+        counter++;
     }
+    if(counter > 0)
+        emit sendDt2clnt(lclntip, lclntport, lclntleftarr, counter);
+
 
     int msec = 11;
     if(activeThreads >= maximumThreads){
@@ -105,20 +147,18 @@ void NTPResponseManager::checkQueue()
         }
     }else{
         sayServerIsBusy = false;
+        if(queueList.isEmpty())
+            queueIsEmptyCounter++;
     }
 
 
 
     if(verboseMode){
-        if(activeThreads >= maximumThreads){
+        if(activeThreads >= maximumThreads)
             qDebug() << "server is overloaded activeThreads=" << activeThreads << maximumThreads << queueList.size();
-        }
-
-        if(queueList.isEmpty() && activeThreads != 0)
-            qDebug() << "queue is emtpy!" << activeThreads << maximumThreads;
-
     }
 
+    emit onCountersChanged(killedObjectCounter, createdObjectCounter, queueIsEmptyCounter);
     emit startTmrQueue(msec);
 }
 //----------------------------------------------------------------------
@@ -126,23 +166,88 @@ void NTPResponseManager::onThreadStarted()
 {
     if(verboseMode)
         qDebug() << "NTPResponseManager ready" ;
+
+    queueMaxSize = secsInQueue = maximumThreads = 9;
+
+    if(allowSharedMemory){
+        SharedMemoryManager *manager = new SharedMemoryManager(verboseMode);
+        QThread *t = new QThread(this);
+
+        manager->moveToThread(t);
+        connect(manager, SIGNAL(destroyed(QObject*)), t, SLOT(quit()) );
+        connect(t, SIGNAL(finished()), t, SLOT(deleteLater()) );
+        connect(t, SIGNAL(started()), manager, SLOT(onThreadStarted()) );
+        connect(this, SIGNAL(destroyed(QObject*)), manager, SLOT(deleteLater()) );
+
+        connect(this, SIGNAL(add2ipHistory(QHostAddress,QDateTime,QDateTime)), manager, SLOT(add2ipHistory(QHostAddress,QDateTime,QDateTime)) );
+        connect(this, SIGNAL(add2systemLogError(QString)                    ), manager, SLOT(add2systemLogError(QString))                     );
+        connect(this, SIGNAL(add2systemLogEvent(QString)                    ), manager, SLOT(add2systemLogEvent(QString))                     );
+        connect(this, SIGNAL(add2systemLogWarn(QString)                     ), manager, SLOT(add2systemLogWarn(QString))                      );
+        connect(this, SIGNAL(saveSharedMemory2file()                        ), manager, SLOT(saveSharedMemory2file())                         );
+        t->start();
+        if(verboseMode)
+            qDebug() << "shared memmory is activated";
+    }
+
+
+
     QTimer *timerCheckQueue = new QTimer(this);
     timerCheckQueue->setInterval(10);
     timerCheckQueue->setSingleShot(true);
     connect(timerCheckQueue, SIGNAL(timeout()), this, SLOT(checkQueue()) );
     connect(this, SIGNAL(startTmrQueue(int)), timerCheckQueue, SLOT(start(int)) );
     lastCurrDt = QDateTime::currentDateTimeUtc();
+
+    QTimer *tmrCheckConf = new QTimer(this);
+    tmrCheckConf->setSingleShot(true);
+    tmrCheckConf->setInterval(30 * 60 * 1000);
+    connect(tmrCheckConf, SIGNAL(timeout()), this, SLOT(reloadConfiguration()) );
+    connect(this, SIGNAL(startTmrCheckConf()), tmrCheckConf, SLOT(start()) );
+
+
+    emit add2systemLogEvent(tr("Start SNTPv4 server..."));
+    reloadConfiguration();
     emit startTmrQueue(111);
 }
 
 //----------------------------------------------------------------------
-void NTPResponseManager::onResponserDestr()
+void NTPResponseManager::onResponserDestr(quint32 counter)
 {
-    if(activeThreads > 0)
-        activeThreads--;
+    if(activeThreads >= counter)
+        activeThreads -= counter;
+    else
+        activeThreads = 0;
+
+    if(activeThreads > maximumThreads)//захист від збою
+        activeThreads = 0;
+
+    killedObjectCounter++;
     if(verboseMode && activeThreads == 0){
         qDebug() << "activeThreads = 0 " << queueList.size();
     }
+}
+//----------------------------------------------------------------------
+void NTPResponseManager::reloadConfiguration()
+{
+    QVariantHash h = SettLoader4matilda().loadOneSett(SETT_SNTP_SERVICE).toHash();
+//    h.insert("queue", 1000);
+//    h.insert("secs", 30);
+//    h.insert("thrd", 50);
+
+    quint32 queueMaxSize = SettLoader4matilda::integerValidator(h.value("queue").toULongLong(), 10, 5000);
+    quint32 secsInQueue = SettLoader4matilda::integerValidator(h.value("secs").toULongLong(), 10, 60);
+    quint32 maximumThreads = SettLoader4matilda::integerValidator(h.value("thrd").toULongLong(), 10, 500);
+
+   if(queueMaxSize != this->queueMaxSize || secsInQueue != this->secsInQueue || maximumThreads != this->maximumThreads){
+       this->queueMaxSize = queueMaxSize;
+       this->secsInQueue = secsInQueue;
+       this->maximumThreads = maximumThreads;
+       if(verboseMode)
+           qDebug() << "changed config " << queueMaxSize << secsInQueue << maximumThreads;
+       emit add2systemLogEvent(tr("Changed configuration, queue: %1, secs: %2, thread: %3").arg(queueMaxSize).arg(secsInQueue).arg(maximumThreads));
+   }
+
+    emit startTmrCheckConf();
 }
 //----------------------------------------------------------------------
 QString NTPResponseManager::remIpPort2key(QHostAddress sender, quint16 port)

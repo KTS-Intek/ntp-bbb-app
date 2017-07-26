@@ -34,7 +34,9 @@ TEMPLATE = app
 SOURCES += main.cpp \
     udpservice.cpp \
     ntpresponsemanager.cpp \
-    ntpresponser.cpp
+    settloader4matilda.cpp \
+    sharedmemorymanager.cpp \
+    matildaprotocolhelper.cpp
 
 linux-beagleboard-g++:{
     target.path = /opt/matilda/bin
@@ -48,6 +50,8 @@ DEFINES += BUILDDATE=\\\"$$system('echo %date%')\\\"
 DEFINES += BUILDTIME=\\\"$$system(date '+%H:%M:%S')\\\"
 DEFINES += BUILDDATE=\\\"$$system(date '+%Y-%m-%d')\\\"
 }
+
+DEFINES += ONLYSMPLSETT=1
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which as been marked deprecated (the exact warnings
@@ -63,4 +67,10 @@ DEFINES += QT_DEPRECATED_WARNINGS
 HEADERS += \
     udpservice.h \
     ntpresponsemanager.h \
-    ntpresponser.h
+    settloader4matilda.h \
+    sharedmemorymanager.h \
+    matildaprotocolhelper.h \
+    moji_defy.h \
+    globalhelper.h \
+    meterplugin.h \
+    ucmetereventcodes.h

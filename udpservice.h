@@ -37,12 +37,26 @@ class UdpService : public QUdpSocket
 public:
     explicit UdpService(const bool &enVerboseMode, quint16 bindPort, QObject *parent = 0);
 
+    static QString getVersionName() ;
+
+    static QString getBuildDate() ;
+
 signals:
     void addThisHost2queue(QHostAddress sender, quint16 port, QByteArray datagram, QDateTime dtUtc);
+    void onClntDone(quint32 counter);
 
+    void add2systemLogError(QString err);
+    void add2systemLogWarn(QString warn);
+    void add2systemLogEvent(QString evnt);
+    void saveAll2file();
 
 public slots:
+    void saveSharedMemory2file();
+
     void onThreadStarted();
+
+
+    void sendDt2clnt(QList<QHostAddress> remSender, QList<quint16> remPort, QList<QByteArray> leftArr, quint32 counter);
 
 
 private slots:
@@ -52,11 +66,24 @@ private slots:
 private:
     void mReadyReadF();
 
+    void add2systemLogErrorF(QString err);
+    void add2systemLogWarnF(QString warn);
+    void add2systemLogEventF(QString evnt);
+
+
+
+
     quint16 bport;
 
     bool verboseMode;
 
     QDateTime dtRelease;
+
+
+    QDateTime dtLastEv, dtLastErr, dtLastWarn;
+    QString lastEv, lastErr, lastWarn;
+
+
 };
 
 #endif // UDPSERVICE_H

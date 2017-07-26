@@ -32,6 +32,11 @@ int main(int argc, char *argv[])
     UdpService *s = new UdpService(qApp->arguments().contains("-vv"), 123);
     s->moveToThread(t);
     QObject::connect(t, SIGNAL(started()), s, SLOT(onThreadStarted()) );
+    QObject::connect(t, SIGNAL(finished()), s, SLOT(saveSharedMemory2file()) );
+
     QTimer::singleShot(555, t, SLOT(start()));
-    return a.exec();
+    int r = a.exec();
+    t->quit();
+    QThread::sleep(1);//save 2 file
+    return r;
 }

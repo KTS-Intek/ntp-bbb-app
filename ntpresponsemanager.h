@@ -32,10 +32,30 @@ class NTPResponseManager : public QObject
 {
     Q_OBJECT
 public:
-    explicit NTPResponseManager(const bool &enVerboseMode, const QDateTime &dtRelease, QObject *parent = 0);
+    explicit NTPResponseManager(const bool &enVerboseMode, const QDateTime &dtRelease, const bool &enShMem, QObject *parent = 0);
+
+    static QByteArray getArrDateTimeStamp(const QDateTime &dt);
+    static QByteArray getCurrentNtpTimeLeftPart(const QByteArray &dtReadArr, const QByteArray &dtRemoteArr);
 
 signals:
     void startTmrQueue(int msec);
+
+    void startTmrCheckConf();
+
+    void sendDt2clnt(QList<QHostAddress> remSender, QList<quint16> remPort, QList<QByteArray> leftArr, quint32 counter);
+
+//    void sendDt2clnt(QHostAddress remSender, quint16 remPort, QByteArray dtReadArr, QDateTime dtReadUtc);
+
+
+    //4shared memory
+    void add2systemLogError(QString err);
+    void add2systemLogWarn(QString warn);
+    void add2systemLogEvent(QString evnt);
+    void saveSharedMemory2file();
+
+    void add2ipHistory(QHostAddress host, QDateTime dtReadUtc, QDateTime dtRemoteUtc);
+
+    void onCountersChanged(quint32 killedObjectCounter, quint32 createdObjectCounter, quint32 queueIsEmptyCounter);
 
 public slots:
     void addThisHost2queue(QHostAddress sender, quint16 port, QByteArray datagram, QDateTime dtReadUtc);
@@ -44,7 +64,9 @@ public slots:
 
     void onThreadStarted();
 
-    void onResponserDestr();
+    void onResponserDestr(quint32 counter);
+
+    void reloadConfiguration();
 
 private:
     QString remIpPort2key(QHostAddress sender, quint16 port);
@@ -52,11 +74,11 @@ private:
     QDateTime dtFromDataGram(const QByteArray &readArr, QByteArray &remDtArr);
 
 
+
     struct RemNtpUdpClient{
         QHostAddress sender;
         quint16 port;
-        QByteArray remDtArr;
-        QDateTime dtReadUtc;
+        QByteArray leftArr;
     };
 
     QHash<QString, RemNtpUdpClient > hashQueue;
@@ -73,6 +95,12 @@ private:
 
     QDateTime lastCurrDt;
     QDateTime dtRelease;
+
+    quint32 killedObjectCounter;
+    quint32 createdObjectCounter;
+    quint32 queueIsEmptyCounter;
+
+    bool allowSharedMemory;
 
 };
 
