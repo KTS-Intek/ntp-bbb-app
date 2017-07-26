@@ -44,11 +44,9 @@ public slots:
     void uCanStartThread();
 
 private:
-
     QByteArray getCurrentNtpTime(const QByteArray &dtReadArr, const QByteArray &dtRemoteArr);
 
     QByteArray getArrDateTimeStamp(const QDateTime &dt);
-
 
     QHostAddress remSender;
     quint16 remPort;

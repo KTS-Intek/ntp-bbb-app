@@ -39,7 +39,6 @@ NtpResponser::NtpResponser(const QHostAddress &remSender, const quint16 &remPort
     connect(this, SIGNAL(destroyed(QObject*)), t, SLOT(quit()) );
     connect(t, SIGNAL(finished()), t, SLOT(deleteLater()) );
     connect(this, SIGNAL(startThread()), t, SLOT(start()) );
-//    t->start();
 }
 //------------------------------------------------------------------------------------
 void NtpResponser::onTheadStarted()

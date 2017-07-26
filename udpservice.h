@@ -52,15 +52,11 @@ private slots:
 private:
     void mReadyReadF();
 
-
-
     quint16 bport;
 
     bool verboseMode;
 
     QDateTime dtRelease;
-
-
 };
 
 #endif // UDPSERVICE_H

@@ -28,7 +28,6 @@
 #include <QHostAddress>
 #include <QtCore>
 
-
 class NTPResponseManager : public QObject
 {
     Q_OBJECT

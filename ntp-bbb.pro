@@ -20,7 +20,6 @@
 ##**  along with ntp-bbb.  If not, see <http://www.gnu.org/licenses/>.
 ##**
 ##**************************************************************************/
-
 QT += core network
 QT -= gui
 
@@ -36,7 +35,6 @@ SOURCES += main.cpp \
     udpservice.cpp \
     ntpresponsemanager.cpp \
     ntpresponser.cpp
-
 
 linux-beagleboard-g++:{
     target.path = /opt/matilda/bin

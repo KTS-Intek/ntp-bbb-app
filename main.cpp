@@ -28,13 +28,10 @@
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
-
-
     QThread *t = new QThread;
     UdpService *s = new UdpService(qApp->arguments().contains("-vv"), 123);
     s->moveToThread(t);
     QObject::connect(t, SIGNAL(started()), s, SLOT(onThreadStarted()) );
     QTimer::singleShot(555, t, SLOT(start()));
-
     return a.exec();
 }

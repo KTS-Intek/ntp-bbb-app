@@ -1,3 +1,26 @@
+/****************************************************************************
+**
+**   Copyright © 2016-2017 The KTS-INTEK Ltd.
+**   Contact: http://www.kts-intek.com.ua
+**   bohdan@kts-intek.com.ua
+**
+**  This file is part of ntp-bbb.
+**
+**  ntp-bbb is free software: you can redistribute it and/or modify
+**  it under the terms of the GNU General Public License as published by
+**  the Free Software Foundation, either version 3 of the License, or
+**  (at your option) any later version.
+**
+**  ntp-bbb is distributed in the hope that it will be useful,
+**  but WITHOUT ANY WARRANTY; without even the implied warranty of
+**  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**  GNU General Public License for more details.
+**
+**  You should have received a copy of the GNU General Public License
+**  along with ntp-bbb.  If not, see <http://www.gnu.org/licenses/>.
+**
+****************************************************************************/
+
 #include "ntpresponsemanager.h"
 #include "ntpresponser.h"
 
@@ -14,14 +37,12 @@ NTPResponseManager::NTPResponseManager(const bool &enVerboseMode, const QDateTim
 //----------------------------------------------------------------------
 void NTPResponseManager::addThisHost2queue(QHostAddress sender, quint16 port, QByteArray datagram, QDateTime dtReadUtc)
 {
-
     QString key = remIpPort2key(sender, port);
     if(hashQueue.contains(key)){
         queueList.removeOne(key);
         hashQueue.remove(key);
         hashQueueDt.remove(key);
     }
-
 
     quint64 size = queueList.size();
     if(size >= queueMaxSize){
@@ -140,8 +161,6 @@ QDateTime NTPResponseManager::dtFromDataGram(const QByteArray &readArr, QByteArr
         quint32 frac = remDtArr.right(4).toHex().toUInt(&ok2, 16);
 
         quint32 msec = frac / ((quint32)(0xFFFFFFFF)/(quint32)1000);
-
-
 
         if(ok1 && ok2 && secs > 0)
             dt = QDateTime(QDate(1900, 1, 1), QTime(0,0,0,0), Qt::UTC).addSecs(secs).addMSecs(msec);// ((frac * 1000000) >> 32)/1000);//microsecs  = (((unsigned long long) frac * 1000000) >> 32)

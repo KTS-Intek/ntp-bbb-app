@@ -43,7 +43,6 @@ void UdpService::onThreadStarted()
         qApp->exit(3);
         return;
     }
-
     qRegisterMetaType<QHostAddress>();
 
     NTPResponseManager *manager = new NTPResponseManager(verboseMode, dtRelease);
