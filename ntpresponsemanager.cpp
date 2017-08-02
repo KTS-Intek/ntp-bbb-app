@@ -59,51 +59,65 @@ QByteArray NTPResponseManager::getCurrentNtpTimeLeftPart(const QByteArray &dtRea
     /*
      * 0x24,    // No warning / Version 4 / Server (packed bitfield)
      * 3,       // Stratum 3 server
-     * 3,       // Polling interval
-     * 0xE9,     // Precision in log2 seconds (18 is 1 microsecond)
-     * 0,0,0,0, // Delay to reference clock (we have PPS, so effectively zero)
-     * 0,0,0,1, // Jitter of reference clock (the PPS is rated to +/- 50ns)
+     * B,       // Polling interval
+     * 0xE0,     // Precision in log2 seconds (18 is 1 microsecond)
+     * 0,0,0,9, // Delay to reference clock (we have PPS, so effectively zero)
+     * 0,0,0,9, // Jitter of reference clock (the PPS is rated to +/- 50ns)
      * LOCL // uncalibrated local clock     'GPS0, // Reference ID - we are using a GPS receiver
     */
-    return QByteArray::fromHex("24 03 03   E9  00000000  00000001 ") + "LOCL" + dtReadArr + dtRemoteArr + dtReadArr;
+    return QByteArray::fromHex("24 03 0C   03  00000019  00000019 ") + "LOCL" + dtReadArr + dtRemoteArr + dtReadArr;
 }
 
 
 //----------------------------------------------------------------------
-void NTPResponseManager::addThisHost2queue(QHostAddress sender, quint16 port, QByteArray datagram, QDateTime dtReadUtc)
+void NTPResponseManager::addThisHost2queue(QList<QHostAddress> lsender, QList<quint16> lport, QList<QByteArray> ldatagram, QDateTime dtReadUtc, int counter)
 {
-    QString key = remIpPort2key(sender, port);
-    if(hashQueue.contains(key)){
-        queueList.removeOne(key);
-        hashQueue.remove(key);
-        hashQueueDt.remove(key);
+    QList<QHostAddress> lsender2;
+    QList<QDateTime> lDtRemote;
+    int counter2 = 0;
+
+    for(int i = 0; i < counter; i++){
+
+        QString key = remIpPort2key(lsender.at(i), lport.at(i));
+        if(hashQueue.contains(key)){
+            queueList.removeOne(key);
+            hashQueue.remove(key);
+            hashQueueDt.remove(key);
+        }
+
+        quint64 size = queueList.size();
+        if(size >= queueMaxSize){
+            if(verboseMode)
+                qDebug() << "addThisHost2queue queue overloaded " << size << queueMaxSize;
+            return;
+        }
+
+        QByteArray remDtArr;
+        QDateTime dtRemote = dtFromDataGram(ldatagram.at(i), remDtArr);
+        if(dtRemote.isValid()){
+
+            RemNtpUdpClient client;
+            client.sender = lsender.at(i);
+            client.port = lport.at(i);
+            client.leftArr = getCurrentNtpTimeLeftPart(getArrDateTimeStamp(dtReadUtc), remDtArr);
+
+            hashQueueDt.insert(key, lastCurrDt);
+            hashQueue.insert(key, client);
+            queueList.append(key);
+
+            lsender2.append(lsender.at(i));
+            lDtRemote.append(dtRemote);
+            counter2++;
+//            emit add2ipHistory(lsender.at(i), dtReadUtc, dtRemote);
+
+        }
+        else if(verboseMode)
+            qDebug() << "dtRemote is not valid " << dtRemote << lsender.at(i) << lport.at(i) ;
     }
 
-    quint64 size = queueList.size();
-    if(size >= queueMaxSize){
-        if(verboseMode)
-            qDebug() << "addThisHost2queue queue overloaded " << size << queueMaxSize;
-        return;
-    }
+    if(counter2 > 0)
+        emit add2ipHistory(lsender2, dtReadUtc, lDtRemote, counter2);
 
-    QByteArray remDtArr;
-    QDateTime dtRemote = dtFromDataGram(datagram, remDtArr);
-    if(dtRemote.isValid()){
-
-        RemNtpUdpClient client;
-        client.sender = sender;
-        client.port = port;
-        client.leftArr = getCurrentNtpTimeLeftPart(getArrDateTimeStamp(dtReadUtc), remDtArr);
-
-        hashQueueDt.insert(key, lastCurrDt);
-        hashQueue.insert(key, client);
-        queueList.append(key);
-
-        emit add2ipHistory(sender, dtReadUtc, dtRemote);
-
-    }
-    else if(verboseMode)
-        qDebug() << "dtRemote is not valid " << dtRemote << sender << port ;
 }
 //----------------------------------------------------------------------
 void NTPResponseManager::checkQueue()
@@ -151,8 +165,6 @@ void NTPResponseManager::checkQueue()
             queueIsEmptyCounter++;
     }
 
-
-
     if(verboseMode){
         if(activeThreads >= maximumThreads)
             qDebug() << "server is overloaded activeThreads=" << activeThreads << maximumThreads << queueList.size();
@@ -179,7 +191,7 @@ void NTPResponseManager::onThreadStarted()
         connect(t, SIGNAL(started()), manager, SLOT(onThreadStarted()) );
         connect(this, SIGNAL(destroyed(QObject*)), manager, SLOT(deleteLater()) );
 
-        connect(this, SIGNAL(add2ipHistory(QHostAddress,QDateTime,QDateTime)), manager, SLOT(add2ipHistory(QHostAddress,QDateTime,QDateTime)) );
+        connect(this, SIGNAL(add2ipHistory(QList<QHostAddress>,QDateTime,QList<QDateTime>,int)), manager, SLOT(add2ipHistory(QList<QHostAddress>,QDateTime,QList<QDateTime>,int)) );
         connect(this, SIGNAL(add2systemLogError(QString)                    ), manager, SLOT(add2systemLogError(QString))                     );
         connect(this, SIGNAL(add2systemLogEvent(QString)                    ), manager, SLOT(add2systemLogEvent(QString))                     );
         connect(this, SIGNAL(add2systemLogWarn(QString)                     ), manager, SLOT(add2systemLogWarn(QString))                      );

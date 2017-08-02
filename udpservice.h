@@ -42,7 +42,7 @@ public:
     static QString getBuildDate() ;
 
 signals:
-    void addThisHost2queue(QHostAddress sender, quint16 port, QByteArray datagram, QDateTime dtUtc);
+    void addThisHost2queue(QList<QHostAddress> lsender, QList<quint16> lport, QList<QByteArray> ldatagram, QDateTime dtUtc, int counter);
     void onClntDone(quint32 counter);
 
     void add2systemLogError(QString err);

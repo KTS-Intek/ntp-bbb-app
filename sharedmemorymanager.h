@@ -26,7 +26,7 @@ public slots:
     void add2systemLogWarn(QString warn);
     void add2systemLogEvent(QString evnt);
 
-    void add2ipHistory(QHostAddress host, QDateTime dtReadUtc, QDateTime dtRemoteUtc);
+    void add2ipHistory(QList<QHostAddress> lhost, QDateTime dtReadUtc, QList<QDateTime> lDtRemoteUtc, int counter);
 
     void saveSharedMemory2file();
 

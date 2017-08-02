@@ -53,12 +53,12 @@ signals:
     void add2systemLogEvent(QString evnt);
     void saveSharedMemory2file();
 
-    void add2ipHistory(QHostAddress host, QDateTime dtReadUtc, QDateTime dtRemoteUtc);
+    void add2ipHistory(QList<QHostAddress> host, QDateTime dtReadUtc, QList<QDateTime> dtRemoteUtc, int counter);
 
     void onCountersChanged(quint32 killedObjectCounter, quint32 createdObjectCounter, quint32 queueIsEmptyCounter);
 
 public slots:
-    void addThisHost2queue(QHostAddress sender, quint16 port, QByteArray datagram, QDateTime dtReadUtc);
+    void addThisHost2queue(QList<QHostAddress> lsender, QList<quint16> lport, QList<QByteArray> ldatagram, QDateTime dtReadUtc, int counter);
 
     void checkQueue();
 

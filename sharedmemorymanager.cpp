@@ -64,13 +64,20 @@ void SharedMemoryManager::add2systemLogEvent(QString evnt)
     startTmrSave2fileLater();
 }
 //-----------------------------------------------------------------------------------------
-void SharedMemoryManager::add2ipHistory(QHostAddress host, QDateTime dtReadUtc, QDateTime dtRemoteUtc)
+void SharedMemoryManager::add2ipHistory(QList<QHostAddress> lhost, QDateTime dtReadUtc, QList<QDateTime> lDtRemoteUtc, int counter)
 {
 
-    hashStatus.insert("ntp-lastip", MatildaProtocolHelper::addLine2list(QString("%1\t%2\t%3")
-                                                                        .arg(SettLoader4matilda::showNormalIP(host.toString()))
-                                                                        .arg(dtReadUtc.toString("yyyyMMddhhmmsszzz"))
-                                                                        .arg(dtRemoteUtc.toString("yyyyMMddhhmmsszzz")), hashStatus.value("ntp-lastip").toStringList(), 5000));
+    QStringList l;
+    QString dts = dtReadUtc.toString("yyyyMMddhhmmsszzz");
+    for(int i = 0; i < counter; i++)
+        l.append(QString("%1\t%2\t%3")
+                 .arg(SettLoader4matilda::showNormalIP(lhost.at(i).toString()))
+                 .arg(dts)
+                 .arg(lDtRemoteUtc.at(i).toString("yyyyMMddhhmmsszzz")));
+
+
+    hashStatus.insert("ntp-lastip", MatildaProtocolHelper::addLines2list(l, hashStatus.value("ntp-lastip").toStringList(), 5000));
+
     startTmrSave2fileLater();
 
 }

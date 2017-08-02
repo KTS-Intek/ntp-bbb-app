@@ -36,7 +36,8 @@ SOURCES += main.cpp \
     ntpresponsemanager.cpp \
     settloader4matilda.cpp \
     sharedmemorymanager.cpp \
-    matildaprotocolhelper.cpp
+    matildaprotocolhelper.cpp \
+    ntpsocket.cpp
 
 linux-beagleboard-g++:{
     target.path = /opt/matilda/bin
@@ -73,4 +74,5 @@ HEADERS += \
     moji_defy.h \
     globalhelper.h \
     meterplugin.h \
-    ucmetereventcodes.h
+    ucmetereventcodes.h \
+    ntpsocket.h

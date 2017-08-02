@@ -73,7 +73,7 @@ void UdpService::onThreadStarted()
     connect(manager, SIGNAL(sendDt2clnt(QList<QHostAddress>,QList<quint16>,QList<QByteArray>,quint32)), this, SLOT(sendDt2clnt(QList<QHostAddress>,QList<quint16>,QList<QByteArray>,quint32)) );
     connect(this, SIGNAL(onClntDone(quint32)), manager, SLOT(onResponserDestr(quint32)) );
 
-    connect(this, SIGNAL(addThisHost2queue(QHostAddress,quint16,QByteArray,QDateTime)), manager, SLOT(addThisHost2queue(QHostAddress,quint16,QByteArray,QDateTime)) );
+    connect(this, SIGNAL(addThisHost2queue(QList<QHostAddress>,QList<quint16>,QList<QByteArray>,QDateTime,int)), manager, SLOT(addThisHost2queue(QList<QHostAddress>,QList<quint16>,QList<QByteArray>,QDateTime,int)) );
     connect(this, SIGNAL(add2systemLogError(QString)), manager, SIGNAL(add2systemLogError(QString)) );
     connect(this, SIGNAL(add2systemLogEvent(QString)), manager, SIGNAL(add2systemLogEvent(QString)) );
     connect(this, SIGNAL(add2systemLogWarn(QString) ), manager, SIGNAL(add2systemLogWarn(QString))  );
@@ -141,12 +141,21 @@ void UdpService::mReadyRead()
 void UdpService::mReadyReadF()
 {
     int badPackets = 0; 
-    bool blockEmit = false;
     QDateTime currDt = QDateTime::currentDateTimeUtc();
+    bool blockEmit = (!dtRelease.isValid() || dtRelease > currDt);
+
     quint8 updateCurrDt = 10;
+
+    //QHostAddress sender, quint16 port, QByteArray datagram, QDateTime dtUtc
+    QList<QHostAddress> lsender;
+    QList<quint16> lport;
+    QList<QByteArray> ldatagram;
+
+    int counter = 0;
     while (hasPendingDatagrams()) {
         QByteArray datagram;
         datagram.resize(pendingDatagramSize());
+        updateCurrDt++;
 
         if(datagram.size() >= 42 ){
             badPackets = 0;
@@ -154,16 +163,25 @@ void UdpService::mReadyReadF()
             quint16 senderPort;
             readDatagram(datagram.data(), datagram.size(), &sender, &senderPort);
 
+            lsender.append(sender);
+            lport.append(senderPort);
+            ldatagram.append(datagram);
+            counter++;
+
             if(updateCurrDt > 9){
                 updateCurrDt = 0;
+                if(!blockEmit && !lsender.isEmpty())
+                    emit addThisHost2queue(lsender, lport, ldatagram, currDt, counter);
+                counter = 0;
+                lsender.clear();
+                lport.clear();
+                ldatagram.clear();
                 currDt = QDateTime::currentDateTimeUtc();
                 if(!dtRelease.isValid() || dtRelease > currDt){
                     add2systemLogErrorF(tr("dtRelease > currDt: %1 %2").arg(dtRelease.toUTC().toString("yyyy-MM-dd hh:mm")).arg(currDt.toUTC().toString("yyyy-MM-dd hh:mm")));
                    qDebug() << "dtRelease > currDt" << dtRelease.toString("yyyy-MM-dd hh:mm:ss.zzz") << currDt.toString("yyyy-MM-dd hh:mm:ss.zzz") << dtRelease.isValid();
                    blockEmit = true;
                 }
-            }else{
-                updateCurrDt++;
             }
 
             if(verboseMode){
@@ -173,11 +191,15 @@ void UdpService::mReadyReadF()
             }
 
 
-            if(!blockEmit)
-                emit addThisHost2queue(sender, senderPort, datagram, currDt);
+
         }else{
             badPackets++;
+
             if(badPackets > 10){
+
+                lsender.clear();
+                lport.clear();
+                ldatagram.clear();
 
                 QHostAddress sender;
                 quint16 senderPort;
@@ -197,6 +219,9 @@ void UdpService::mReadyReadF()
             }
         }
     }
+
+    if(!blockEmit && !lsender.isEmpty())
+        emit addThisHost2queue(lsender, lport, ldatagram, currDt, counter);
 
 }
 //-------------------------------------------------------------------------------------------
