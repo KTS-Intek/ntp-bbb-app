@@ -76,7 +76,7 @@ void SharedMemoryManager::add2ipHistory(QList<QHostAddress> lhost, QDateTime dtR
                  .arg(lDtRemoteUtc.at(i).toString("yyyyMMddhhmmsszzz")));
 
 
-    hashStatus.insert("ntp-lastip", MatildaProtocolHelper::addLines2list(l, hashStatus.value("ntp-lastip").toStringList(), 5000));
+    hashStatus.insert("ntp-lastip", MatildaProtocolHelper::addLines2list(l, hashStatus.value("ntp-lastip").toStringList(), 5000, ""));
 
     startTmrSave2fileLater();
 
@@ -168,41 +168,7 @@ void SharedMemoryManager::reloadFromMemory()
 void SharedMemoryManager::add2sharedMemo(QVariantHash hashStat)
 {
 
-    QBuffer buffer;
-    buffer.open(QBuffer::WriteOnly);
-    QDataStream out(&buffer);
-    out.setVersion(QDataStream::Qt_5_6);
-    out << hashStat;
-    int size = buffer.size();
-
-    QSystemSemaphore sema(SettLoader4matilda::defSntpServerSemaName(), 1);
-    sema.acquire();
-
-    if(shmem.isAttached())
-        shmem.detach();
-
-//    qDebug() << "shared memory size=, data=" << shmem.size() << size << shmem.key();
-
-    if(!shmem.create(size)){
-        shmem.attach();
-        shmem.lock();
-        shmem.unlock();
-        shmem.detach();
-        if(verboseMode)
-            qDebug() << "can't create shared memory " << size << shmem.errorString() << shmem.key();
-        sema.release();
-
-        return;
-    }
-
-    shmem.lock();
-    char *to = (char *)shmem.data();
-    const char *from = buffer.data().data();
-    memcpy(to, from, qMin(shmem.size(), size));
-    shmem.unlock();
-
-    sema.release();
-
+    MatildaProtocolHelper::write2sharedMemory(hashStat, shmem, SettLoader4matilda::defSntpServerSemaName());
     if(!tmrSave2fileIsRun ){
         tmrSave2fileIsRun = true;
         emit startTmrSave2file();

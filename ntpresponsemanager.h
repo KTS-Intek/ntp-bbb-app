@@ -44,6 +44,7 @@ signals:
 
     void sendDt2clnt(QList<QHostAddress> remSender, QList<quint16> remPort, QList<QByteArray> leftArr, quint32 counter);
 
+    void setWhiteBlockList(QStringList whiteIpList, QStringList blockThisIp);
 //    void sendDt2clnt(QHostAddress remSender, quint16 remPort, QByteArray dtReadArr, QDateTime dtReadUtc);
 
 
@@ -67,6 +68,8 @@ public slots:
     void onResponserDestr(quint32 counter);
 
     void reloadConfiguration();
+
+    void killApp();
 
 private:
     QString remIpPort2key(QHostAddress sender, quint16 port);
@@ -101,6 +104,10 @@ private:
     quint32 queueIsEmptyCounter;
 
     bool allowSharedMemory;
+
+
+    QStringList blockThisIp;
+    QStringList whiteIpList;
 
 };
 

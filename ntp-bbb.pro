@@ -37,7 +37,8 @@ SOURCES += main.cpp \
     settloader4matilda.cpp \
     sharedmemorymanager.cpp \
     matildaprotocolhelper.cpp \
-    ntpsocket.cpp
+    localsockettmplt.cpp \
+    sntplocalsocket.cpp
 
 linux-beagleboard-g++:{
     target.path = /opt/matilda/bin
@@ -75,4 +76,5 @@ HEADERS += \
     globalhelper.h \
     meterplugin.h \
     ucmetereventcodes.h \
-    ntpsocket.h
+    localsockettmplt.h \
+    sntplocalsocket.h

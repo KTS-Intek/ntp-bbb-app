@@ -41,7 +41,7 @@ QString UdpService::getVersionName()
 //-------------------------------------------------------------------------------------------
 QString UdpService::getBuildDate()
 {
-    qDebug() << "ZbyratorManager::getBuildDate " << BUILDDATE << BUILDTIME << QString::fromLocal8Bit(BUILDDATE) << QString::fromLocal8Bit(BUILDTIME);
+    qDebug() << "UdpService::getBuildDate " << BUILDDATE << BUILDTIME << QString::fromLocal8Bit(BUILDDATE) << QString::fromLocal8Bit(BUILDTIME);
     return QString::fromLocal8Bit(BUILDDATE) + " " + QString::fromLocal8Bit(BUILDTIME);
 }
 //-------------------------------------------------------------------------------------------
@@ -58,6 +58,7 @@ void UdpService::onThreadStarted()
 
     qRegisterMetaType<QHostAddress>();
     qRegisterMetaType<QList<QHostAddress> >();
+    qRegisterMetaType<QList<QDateTime> >();
     qRegisterMetaType<QList<quint16> >("QList<quint16>");
 //    qRegisterMetaType<QList<QByteArray> >("");
 
@@ -112,11 +113,13 @@ void UdpService::sendDt2clnt(QList<QHostAddress> remSender, QList<quint16> remPo
         for(quint32 i = 0, updateDt = 0; i < counter; i++, updateDt++){
             QByteArray writeArr = leftArr.at(i) + currDtarr;
             qint64 writeSize = writeDatagram(writeArr, remSender.at(i), remPort.at(i));
-            if(writeSize < 1 && verboseMode)
-                qDebug() << "write NTP " << remSender.at(i).toString() << remPort.at(i) << writeArr.toHex() << writeSize << dtRelease << currDt.toString("yyyy-MM-dd hh:mm:ss.zzz") << errorString();
-            else if(verboseMode)
-                qDebug() << "writeNTP " << writeSize << writeArr.toHex() << remSender.at(i).toString() << remPort.at(i) << currDt.toString("yyyy-MM-dd hh:mm:ss.zzz")<< errorString();
 
+            if(verboseMode){
+                if(writeSize < 1)
+                    qDebug() << "write NTP " << remSender.at(i).toString() << remPort.at(i) << writeArr.toHex() << writeSize << dtRelease << currDt.toString("yyyy-MM-dd hh:mm:ss.zzz") << errorString();
+                else
+                    qDebug() << "writeNTP " << writeSize << writeArr.toHex() << remSender.at(i).toString() << remPort.at(i) << currDt.toString("yyyy-MM-dd hh:mm:ss.zzz")<< errorString();
+            }
             if(updateDt > 50){
                 updateDt = 0;
                 currDt = QDateTime::currentDateTimeUtc();
@@ -129,6 +132,7 @@ void UdpService::sendDt2clnt(QList<QHostAddress> remSender, QList<quint16> remPo
     }
     emit onClntDone(counter);
 }
+
 
 //-------------------------------------------------------------------------------------------
 void UdpService::mReadyRead()

@@ -25,6 +25,7 @@
 //#include "ntpresponser.h"
 #include "settloader4matilda.h"
 #include "sharedmemorymanager.h"
+#include "sntplocalsocket.h"
 
 //----------------------------------------------------------------------
 NTPResponseManager::NTPResponseManager(const bool &enVerboseMode, const QDateTime &dtRelease, const bool &enShMem, QObject *parent) : QObject(parent)
@@ -78,6 +79,18 @@ void NTPResponseManager::addThisHost2queue(QList<QHostAddress> lsender, QList<qu
 
     for(int i = 0; i < counter; i++){
 
+        if(!whiteIpList.isEmpty() || !blockThisIp.isEmpty()){
+            QString ipStr = SettLoader4matilda::showNormalIP(lsender.at(i).toString());
+            if(!whiteIpList.isEmpty() && !whiteIpList.contains(ipStr)){
+                emit add2systemLogWarn(tr("IP not from whiteList: %1").arg(ipStr));
+                continue;
+            }
+            if(!blockThisIp.isEmpty() && blockThisIp.contains(ipStr)){
+                emit add2systemLogWarn(tr("IP from blackList: %1").arg(ipStr));
+                continue;
+            }
+        }
+
         QString key = remIpPort2key(lsender.at(i), lport.at(i));
         if(hashQueue.contains(key)){
             queueList.removeOne(key);
@@ -89,7 +102,7 @@ void NTPResponseManager::addThisHost2queue(QList<QHostAddress> lsender, QList<qu
         if(size >= queueMaxSize){
             if(verboseMode)
                 qDebug() << "addThisHost2queue queue overloaded " << size << queueMaxSize;
-            return;
+            break;
         }
 
         QByteArray remDtArr;
@@ -182,24 +195,43 @@ void NTPResponseManager::onThreadStarted()
     queueMaxSize = secsInQueue = maximumThreads = 9;
 
     if(allowSharedMemory){
-        SharedMemoryManager *manager = new SharedMemoryManager(verboseMode);
-        QThread *t = new QThread(this);
 
-        manager->moveToThread(t);
-        connect(manager, SIGNAL(destroyed(QObject*)), t, SLOT(quit()) );
-        connect(t, SIGNAL(finished()), t, SLOT(deleteLater()) );
-        connect(t, SIGNAL(started()), manager, SLOT(onThreadStarted()) );
-        connect(this, SIGNAL(destroyed(QObject*)), manager, SLOT(deleteLater()) );
+        if(true){
+            SharedMemoryManager *manager = new SharedMemoryManager(verboseMode);
+            QThread *t = new QThread(this);
 
-        connect(this, SIGNAL(add2ipHistory(QList<QHostAddress>,QDateTime,QList<QDateTime>,int)), manager, SLOT(add2ipHistory(QList<QHostAddress>,QDateTime,QList<QDateTime>,int)) );
-        connect(this, SIGNAL(add2systemLogError(QString)                    ), manager, SLOT(add2systemLogError(QString))                     );
-        connect(this, SIGNAL(add2systemLogEvent(QString)                    ), manager, SLOT(add2systemLogEvent(QString))                     );
-        connect(this, SIGNAL(add2systemLogWarn(QString)                     ), manager, SLOT(add2systemLogWarn(QString))                      );
-        connect(this, SIGNAL(saveSharedMemory2file()                        ), manager, SLOT(saveSharedMemory2file())                         );
-        t->start();
-        if(verboseMode)
-            qDebug() << "shared memmory is activated";
+            manager->moveToThread(t);
+            connect(manager, SIGNAL(destroyed(QObject*)), t, SLOT(quit()) );
+            connect(t, SIGNAL(finished()), t, SLOT(deleteLater()) );
+            connect(t, SIGNAL(started()), manager, SLOT(onThreadStarted()) );
+            connect(this, SIGNAL(destroyed(QObject*)), manager, SLOT(deleteLater()) );
+
+            connect(this, SIGNAL(add2ipHistory(QList<QHostAddress>,QDateTime,QList<QDateTime>,int)), manager, SLOT(add2ipHistory(QList<QHostAddress>,QDateTime,QList<QDateTime>,int)) );
+            connect(this, SIGNAL(add2systemLogError(QString)                    ), manager, SLOT(add2systemLogError(QString))                     );
+            connect(this, SIGNAL(add2systemLogEvent(QString)                    ), manager, SLOT(add2systemLogEvent(QString))                     );
+            connect(this, SIGNAL(add2systemLogWarn(QString)                     ), manager, SLOT(add2systemLogWarn(QString))                      );
+            connect(this, SIGNAL(saveSharedMemory2file()                        ), manager, SLOT(saveSharedMemory2file())                         );
+            t->start();
+            if(verboseMode)
+                qDebug() << "shared memmory is activated";
+        }
+
+        if(true){
+            SntpLocalSocket *manager = new SntpLocalSocket;
+            QThread *t = new QThread(this);
+            manager->moveToThread(t);
+
+            connect(manager, SIGNAL(destroyed(QObject*)), t, SLOT(quit()) );
+            connect(t, SIGNAL(finished()), t, SLOT(deleteLater()) );
+            connect(t, SIGNAL(started()), manager, SLOT(onThreadStarted()) );
+
+            connect(manager, SIGNAL(reloadSett()), this, SLOT(reloadConfiguration()) );
+            connect(manager, SIGNAL(killApp()   ), this, SLOT(killApp())        );
+            t->start();
+        }
+
     }
+
 
 
 
@@ -259,7 +291,27 @@ void NTPResponseManager::reloadConfiguration()
        emit add2systemLogEvent(tr("Changed configuration, queue: %1, secs: %2, thread: %3").arg(queueMaxSize).arg(secsInQueue).arg(maximumThreads));
    }
 
-    emit startTmrCheckConf();
+   QStringList blockThisIp, whiteIpList;
+   if(true){
+       SettLoader4matilda sLoader;
+       blockThisIp = sLoader.loadOneSett(SETT_BLACK_IP_LIST).toStringList();
+       whiteIpList = sLoader.loadOneSett(SETT_WHITE_IP_LIST).toStringList();
+   }
+
+   if(blockThisIp != this->blockThisIp || whiteIpList != this->whiteIpList){
+       emit setWhiteBlockList(whiteIpList, blockThisIp);
+       this->whiteIpList = whiteIpList;
+       this->blockThisIp = blockThisIp;
+   }
+
+
+   emit startTmrCheckConf();
+}
+//----------------------------------------------------------------------
+void NTPResponseManager::killApp()
+{
+    qApp->exit(APP_CODE_RESTART);
+
 }
 //----------------------------------------------------------------------
 QString NTPResponseManager::remIpPort2key(QHostAddress sender, quint16 port)
