@@ -45,6 +45,11 @@ linux-beagleboard-g++:{
     INSTALLS += target
 }
 
+linux:{
+    target.path = /opt/matilda/bin
+    INSTALLS += target
+}
+
 win32 {
 DEFINES += BUILDTIME=\\\"$$system('echo %time%')\\\"
 DEFINES += BUILDDATE=\\\"$$system('echo %date%')\\\"
