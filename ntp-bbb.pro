@@ -31,34 +31,15 @@ CONFIG -= app_bundle
 
 TEMPLATE = app
 
-SOURCES += main.cpp \
-    udpservice.cpp \
-    ntpresponsemanager.cpp \
-    settloader4matilda.cpp \
-    sharedmemorymanager.cpp \
-    matildaprotocolhelper.cpp \
-    localsockettmplt.cpp \
-    sntplocalsocket.cpp
+VERSION = 0.0.2
 
-linux-beagleboard-g++:{
-    target.path = /opt/matilda/bin
-    INSTALLS += target
-}
+#DEFINES += APPLCTN_NAME=\\\"quick-collect\\\" it is only for GUI
+DEFINES += "MYAPPNAME=\"\\\"ntp-bbb\\\"\""
+DEFINES += "MYAPPOWNER=\"\\\"KTS-Intek Ltd\\\"\""
+DEFINES += "MYAPPOWNERSITE=\"\\\"http://kts-intek.com\\\"\""
 
-linux:{
-    target.path = /opt/matilda/bin
-    INSTALLS += target
-}
 
-win32 {
-DEFINES += BUILDTIME=\\\"$$system('echo %time%')\\\"
-DEFINES += BUILDDATE=\\\"$$system('echo %date%')\\\"
-} else {
-DEFINES += BUILDTIME=\\\"$$system(date '+%H:%M:%S')\\\"
-DEFINES += BUILDDATE=\\\"$$system(date '+%Y-%m-%d')\\\"
-}
-
-DEFINES += ONLYSMPLSETT=1
+#DEFINES += ONLYSMPLSETT=1
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which as been marked deprecated (the exact warnings
@@ -71,15 +52,43 @@ DEFINES += QT_DEPRECATED_WARNINGS
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
+linux-beagleboard-g++:{
+    target.path = /opt/matilda/bin
+    INSTALLS += target
+}
+
+linux:{
+    target.path = /opt/matilda/bin
+    INSTALLS += target
+}
+
+DEFINES += ENABLE_SETTLOADER4MATILDA
+
+include(../../../Matilda-units/matilda-base/type-converter/type-converter.pri)
+
+include(../../../Matilda-units/ipc/localsockets/localsockets.pri)
+include(../../../Matilda-units/ipc/sharedmemory/sharedmemory.pri)
+include(../../../Matilda-units/matilda-bbb/matilda-bbb-settings/matilda-bbb-settings.pri)
+include(../../../Matilda-units/matilda-base/MatildaIO/MatildaIO.pri)
+
+
+SOURCES += main.cpp \
+    ntp-bbb-src/ntpdataprocessor.cpp \
+    ntp-bbb-src/ntpdataprocessorbase.cpp \
+    ntp-bbb-src/ntplocalsocket.cpp \
+    ntp-bbb-src/ntpprotocolhelper.cpp \
+    ntp-bbb-src/ntpresourcemanager.cpp \
+    ntp-bbb-src/ntpservice.cpp \
+    ntp-bbb-src/ntpservicebase.cpp \
+    ntp-bbb-src/ntpsharedmemowriter.cpp
+
+
 HEADERS += \
-    udpservice.h \
-    ntpresponsemanager.h \
-    settloader4matilda.h \
-    sharedmemorymanager.h \
-    matildaprotocolhelper.h \
-    moji_defy.h \
-    globalhelper.h \
-    meterplugin.h \
-    ucmetereventcodes.h \
-    localsockettmplt.h \
-    sntplocalsocket.h
+    ntp-bbb-src/ntpdataprocessor.h \
+    ntp-bbb-src/ntpdataprocessorbase.h \
+    ntp-bbb-src/ntplocalsocket.h \
+    ntp-bbb-src/ntpprotocolhelper.h \
+    ntp-bbb-src/ntpresourcemanager.h \
+    ntp-bbb-src/ntpservice.h \
+    ntp-bbb-src/ntpservicebase.h \
+    ntp-bbb-src/ntpsharedmemowriter.h

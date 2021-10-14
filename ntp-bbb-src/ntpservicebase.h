@@ -1,8 +1,8 @@
 /****************************************************************************
 **
-**   Copyright © 2016-2017 The KTS-INTEK Ltd.
-**   Contact: http://www.kts-intek.com.ua
-**   bohdan@kts-intek.com.ua
+**   Copyright © 2016-2021 The KTS-INTEK Ltd.
+**   Contact: http://www.kts-intek.com
+**   bohdan@kts-intek.com
 **
 **  This file is part of ntp-bbb.
 **
@@ -21,69 +21,56 @@
 **
 ****************************************************************************/
 
-#ifndef UDPSERVICE_H
-#define UDPSERVICE_H
+#ifndef NTPSERVICEBASE_H
+#define NTPSERVICEBASE_H
 
-#include <QObject>
 #include <QUdpSocket>
-#include <QtCore>
+#include <QDateTime>
+#include <QStringList>
+#include <QTimer>
+#include <QByteArray>
 #include <QHostAddress>
 
-Q_DECLARE_METATYPE(QHostAddress)
-
-class UdpService : public QUdpSocket
+class NTPServiceBase : public QUdpSocket
 {
     Q_OBJECT
 public:
-    explicit UdpService(const bool &enVerboseMode, quint16 bindPort, QObject *parent = 0);
+    explicit NTPServiceBase(const bool &verboseMode, QObject *parent = nullptr);
 
-    static QString getVersionName() ;
+    struct ServiceParams
+    {
+        QDateTime dtRelease;
+        bool verboseMode;
+        ServiceParams() : verboseMode(false) {}
+    } myParams;
 
-    static QString getBuildDate() ;
 
 signals:
+    //to ntp data processor
     void addThisHost2queue(QList<QHostAddress> lsender, QList<quint16> lport, QList<QByteArray> ldatagram, QDateTime dtUtc, int counter);
-    void onClntDone(quint32 counter);
+//    void onClntDone(quint32 counter);
+    void blockThisIP(QString ip);
 
+    //to the parent
     void add2systemLogError(QString err);
     void add2systemLogWarn(QString warn);
     void add2systemLogEvent(QString evnt);
-    void saveAll2file();
+
+
 
 public slots:
-    void saveSharedMemory2file();
-
-    void onThreadStarted();
-
-
     void sendDt2clnt(QList<QHostAddress> remSender, QList<quint16> remPort, QList<QByteArray> leftArr, quint32 counter);
 
+    void setDtRelease(const QDateTime &dt);
 
-private slots:
     void mReadyRead();
 
 
 private:
-    void mReadyReadF();
+    bool mReadyReadF();
 
-    void add2systemLogErrorF(QString err);
-    void add2systemLogWarnF(QString warn);
-    void add2systemLogEventF(QString evnt);
-
-
-
-
-    quint16 bport;
-
-    bool verboseMode;
-
-    QDateTime dtRelease;
-
-
-    QDateTime dtLastEv, dtLastErr, dtLastWarn;
-    QString lastEv, lastErr, lastWarn;
-
+    bool checkHasBadDataGrams();
 
 };
 
-#endif // UDPSERVICE_H
+#endif // NTPSERVICEBASE_H

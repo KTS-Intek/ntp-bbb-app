@@ -1,8 +1,8 @@
 /****************************************************************************
 **
 **   Copyright © 2016-2021 The KTS-INTEK Ltd.
-**   Contact: http://www.kts-intek.com.ua
-**   bohdan@kts-intek.com.ua
+**   Contact: http://www.kts-intek.com
+**   bohdan@kts-intek.com
 **
 **  This file is part of ntp-bbb.
 **
@@ -21,32 +21,28 @@
 **
 ****************************************************************************/
 
-#include <QCoreApplication>
-#include <QtCore>
-//#include "udpservice.h"
+#ifndef NTPPROTOCOLHELPER_H
+#define NTPPROTOCOLHELPER_H
 
-#include "ntp-bbb-src/ntpresourcemanager.h"
+#include <QByteArray>
+#include <QDateTime>
 
-int main(int argc, char *argv[])
+//it encodes / decodes NTP Packets
+
+class NTPProtocolHelper
 {
-    QCoreApplication a(argc, argv);
 
-    NTPResourceManager manager;
-    manager.startNTPService(qApp->arguments().contains("-vv"));
+public:
+    static QByteArray getArrDateTimeStamp(const QDateTime &dt);
+
+    static QByteArray getCurrentNtpTimeLeftPartFromDt(const QDateTime &dt, const QByteArray &dtRemoteArr);
+
+    static QByteArray getCurrentNtpTimeLeftPart(const QByteArray &dtReadArr, const QByteArray &dtRemoteArr);
 
 
+    static QDateTime dtFromDataGram(const QByteArray &readArr, QByteArray &remDtArr);
 
-//    QThread *t = new QThread;
 
-//    t->setObjectName("UdpService");
-//    UdpService *s = new UdpService(qApp->arguments().contains("-vv"), 123);
-//    s->moveToThread(t);
-//    QObject::connect(t, SIGNAL(started()), s, SLOT(onThreadStarted()) );
-//    QObject::connect(t, SIGNAL(finished()), s, SLOT(saveSharedMemory2file()) );
+};
 
-//    int r = a.exec();
-//    t->quit();
-//    QThread::sleep(1);//save 2 file
-
-    return a.exec();
-}
+#endif // NTPPROTOCOLHELPER_H

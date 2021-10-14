@@ -1,8 +1,8 @@
 /****************************************************************************
 **
 **   Copyright © 2016-2021 The KTS-INTEK Ltd.
-**   Contact: http://www.kts-intek.com.ua
-**   bohdan@kts-intek.com.ua
+**   Contact: http://www.kts-intek.com
+**   bohdan@kts-intek.com
 **
 **  This file is part of ntp-bbb.
 **
@@ -21,32 +21,48 @@
 **
 ****************************************************************************/
 
-#include <QCoreApplication>
-#include <QtCore>
-//#include "udpservice.h"
+#ifndef NTPDATAPROCESSOR_H
+#define NTPDATAPROCESSOR_H
 
-#include "ntp-bbb-src/ntpresourcemanager.h"
+///[!] ntp-bbb
+#include "ntp-bbb-src/ntpdataprocessorbase.h"
 
-int main(int argc, char *argv[])
+
+#include <QTimer>
+
+
+
+//it processes data from NTP service
+//and generates answers or ignores if the received IP is blocked
+
+class NTPDataProcessor : public NTPDataProcessorBase
 {
-    QCoreApplication a(argc, argv);
-
-    NTPResourceManager manager;
-    manager.startNTPService(qApp->arguments().contains("-vv"));
-
+    Q_OBJECT
+public:
+    explicit NTPDataProcessor(const bool &verboseMode, QObject *parent = nullptr);
 
 
-//    QThread *t = new QThread;
 
-//    t->setObjectName("UdpService");
-//    UdpService *s = new UdpService(qApp->arguments().contains("-vv"), 123);
-//    s->moveToThread(t);
-//    QObject::connect(t, SIGNAL(started()), s, SLOT(onThreadStarted()) );
-//    QObject::connect(t, SIGNAL(finished()), s, SLOT(saveSharedMemory2file()) );
 
-//    int r = a.exec();
-//    t->quit();
-//    QThread::sleep(1);//save 2 file
+signals:
 
-    return a.exec();
-}
+//local
+    void startTmrQueue(int msec);
+
+public slots:
+    void onThreadStarted();
+
+    void addThisHost2queue(QList<QHostAddress> lsender, QList<quint16> lport, QList<QByteArray> ldatagram, QDateTime dtReadUtc, int counter);
+
+
+
+
+    void checkQueue();
+
+
+
+    void killAllObjects();
+
+};
+
+#endif // NTPDATAPROCESSOR_H
