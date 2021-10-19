@@ -226,7 +226,10 @@ void NTPResourceManager::createTimerServer()
 
     connect(processor, &NTPDataProcessor::sendDt2clnt, service, &NTPService::sendDt2clnt);
 
+
+    connect(processor, &NTPDataProcessor::gimmeConfiguration, this, &NTPResourceManager::onConfigChanged);
     tprocessor->start();
+
 
 }
 

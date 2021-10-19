@@ -37,9 +37,15 @@ void NTPDataProcessor::onThreadStarted()
     connect(timerCheckQueue, &QTimer::timeout, this, &NTPDataProcessor::checkQueue);
     connect(this, SIGNAL(startTmrQueue(int)), timerCheckQueue, SLOT(start(int)) );
 
+    accesManager = new IPAccessManager(this);
+    connect(accesManager, &IPAccessManager::add2systemLog, this, &NTPDataProcessor::add2systemLogEvent);
+    connect(this, &NTPDataProcessor::setAllowAndBlockList, accesManager, &IPAccessManager::setAllowAndBlockList);
+    connect(this, &NTPDataProcessor::blockThisIP, accesManager, &IPAccessManager::blockThisIP);
+
     emit add2systemLogEvent(tr("SNTP data processor is ready"));
     emit startTmrQueue(111);
 
+    emit gimmeConfiguration();
 }
 
 
@@ -54,7 +60,9 @@ void NTPDataProcessor::addThisHost2queue(QList<QHostAddress> lsender, QList<quin
         const QString strIP = NetworkConvertHelper::showNormalIP(lsender.at(i));
 
 
-        if(isIPblockedByTheAllowList(strIP) || isIPblockedByTheBlockList(strIP) || isIPblockedByTheTemporaryBlockList(strIP)){
+        if(accesManager->isIPblockedByTheAllowList(strIP) ||
+                accesManager->isIPblockedByTheBlockList(strIP) ||
+                accesManager->isIPblockedByTheTemporaryBlockList(strIP)){
             if(myParams.verboseMode)
                 qDebug() << "addThisHost2queue ignore this ip " << strIP;
             continue;

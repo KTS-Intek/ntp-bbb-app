@@ -41,89 +41,6 @@ QString NTPDataProcessorBase::remIpPort2key(QHostAddress ipAddr, quint16 port)
 
 }
 
-bool NTPDataProcessorBase::isIPblockedByTheAllowList(const QString &strIP)
-{
-    if(myParams.allowIpList.isEmpty())
-        return false;
-
-    if(!myParams.allowIpList.contains(strIP) || !NetworkConvertHelper::isIpGood(strIP, myParams.allowIpList)){
-        emit add2systemLogWarn(QString("ip: %1 is blocked. Allow list is enabled!").arg(strIP));
-        if(myParams.verboseMode)
-            qDebug() << "ip is not in the white list" << strIP;
-
-        return true;
-    }
-    return false;
-}
-
-bool NTPDataProcessorBase::isIPblockedByTheBlockList(const QString &strIP)
-{
-    if(myParams.allowIpList.contains(strIP) ||
-            (!myParams.allowIpList.isEmpty() && NetworkConvertHelper::isIpGood(strIP, myParams.allowIpList))) //ignore IPs from the myParams.allowIpList
-       return false;
-
-    if(myParams.blockThisIp.isEmpty())
-        return false;
-
-    if(myParams.blockThisIp.contains(strIP) || NetworkConvertHelper::isIpGood(strIP, myParams.blockThisIp)){
-        emit add2systemLogWarn(QString("ip: %1 is in the black list.").arg(strIP));
-        if(myParams.verboseMode)
-            qDebug() << "ip in black list" << strIP;
-        return true;
-    }
-    return false;
-}
-
-bool NTPDataProcessorBase::isIPblockedByTheTemporaryBlockList(const QString &strIP)
-{
-
-    if(myParams.allowIpList.contains(strIP) ||
-            (!myParams.allowIpList.isEmpty() && NetworkConvertHelper::isIpGood(strIP, myParams.allowIpList))) //ignore IPs from the myParams.allowIpList
-       return false;
-
-    if(temporaryBlockedIPs.contains(strIP)){ //temporary blocked
-
-        const auto oneItem = temporaryBlockedIPs.value(strIP);
-//        counter = oneItem.counter;// list.first().toInt();
-
-        const auto dt = QDateTime::currentDateTimeUtc();
-        const auto dtLast = QDateTime::fromMSecsSinceEpoch(oneItem.dtLast);
-
-        const int secsDiff = qAbs(dt.secsTo(dtLast));
-
-        if(oneItem.counter > 2){
-
-
-            if (secsDiff   < 300){
-                emit add2systemLogWarn(QString("ip: %1 is blocked. Blocking for %2 secouds, elapsed %3, counter %4")
-                                        .arg(strIP).arg(300).arg(secsDiff).arg(oneItem.counter));
-                addThisIPToBlackListQuiet(strIP);
-                return true;
-            }
-
-        }
-
-        if(secsDiff > 600)//remove it after 10 minutes
-            temporaryBlockedIPs.remove(strIP);
-
-    }
-
-
-
-    return false;
-}
-
-void NTPDataProcessorBase::addThisIPToBlackListQuiet(QString addr)
-{
-    auto oneItem = temporaryBlockedIPs.value(addr);
-    if(oneItem.counter < 15)
-        oneItem.counter++;
-    oneItem.dtLast = QDateTime::currentMSecsSinceEpoch();
-
-    temporaryBlockedIPs.insert(addr, oneItem);
-
-}
-
 bool NTPDataProcessorBase::addThisClient2queueSmart(const QHostAddress &addr, const quint16 &remPort, const QByteArray &datagramArr, const QDateTime &dtReadUtc, QDateTime &dtRemote)
 {
     const QString key = remIpPort2key(addr, remPort);
@@ -229,23 +146,4 @@ void NTPDataProcessorBase::setQueueParams(quint64 queueMaxSize, quint64 secsInQu
 
 }
 
-void NTPDataProcessorBase::setAllowAndBlockList(QStringList allowIpList, QStringList blockThisIp)
-{
-    if(myParams.allowIpList != allowIpList || myParams.blockThisIp != blockThisIp){
-        myParams.allowIpList = allowIpList;
-        myParams.blockThisIp = blockThisIp;
-        emit add2systemLogEvent(tr("Changed configuration, allowallowIpList %1, blockThisIp %3")
-                                .arg(allowIpList.size()).arg(blockThisIp.size()));
-
-    }
-
-}
-
-void NTPDataProcessorBase::blockThisIP(QString ip)
-{
-    if(!temporaryBlockedIPs.contains(ip))
-        emit add2systemLogEvent(tr("This IP '%1' is added to the temporary block list ").arg(ip));
-    addThisIPToBlackListQuiet(ip);
-
-}
 

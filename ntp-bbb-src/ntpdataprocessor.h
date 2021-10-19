@@ -27,6 +27,9 @@
 ///[!] ntp-bbb
 #include "ntp-bbb-src/ntpdataprocessorbase.h"
 
+///[!] MatildaIO
+#include "matilda-bbb-src/shared/ipaccessmanager.h"
+
 
 #include <QTimer>
 
@@ -41,6 +44,7 @@ class NTPDataProcessor : public NTPDataProcessorBase
 public:
     explicit NTPDataProcessor(const bool &verboseMode, QObject *parent = nullptr);
 
+    IPAccessManager *accesManager;
 
 
 
@@ -48,6 +52,15 @@ signals:
 
 //local
     void startTmrQueue(int msec);
+
+//to     IPAccessManager
+    void setAllowAndBlockList(QStringList allowIpList, QStringList blockThisIp);
+    void blockThisIP(QString ip);
+
+
+    //to parent
+    void gimmeConfiguration();
+
 
 public slots:
     void onThreadStarted();

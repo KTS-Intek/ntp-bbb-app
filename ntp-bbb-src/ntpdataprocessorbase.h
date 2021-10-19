@@ -32,6 +32,7 @@
 ///[!] type-converter
 #include "src/shared/networkconverthelper.h"
 
+
 class NTPDataProcessorBase : public QObject
 {
     Q_OBJECT
@@ -47,8 +48,6 @@ public:
         quint64 secsInQueue;
         quint64 maximumThreads;
 
-        QStringList allowIpList;
-        QStringList blockThisIp;
 
         NTPDataProcessorParams() :
             verboseMode(false),
@@ -56,13 +55,6 @@ public:
     } myParams;
 
 
-    struct NTPTemporaryBlocked
-    {
-        quint16 counter;
-        qint64 dtLast;
-        NTPTemporaryBlocked() : counter(0), dtLast(0) {}
-    };
-    QHash<QString, NTPTemporaryBlocked > temporaryBlockedIPs;// blackIPList;
 
     struct NTPQueueItem
     {
@@ -86,16 +78,9 @@ public:
 
 
 
-
     QString remIpPort2key(QHostAddress ipAddr, quint16 port);
 
-    bool isIPblockedByTheAllowList(const QString &strIP);
 
-    bool isIPblockedByTheBlockList(const QString &strIP);
-
-    bool isIPblockedByTheTemporaryBlockList(const QString &strIP);
-
-    void addThisIPToBlackListQuiet(QString addr);
 
     bool addThisClient2queueSmart(const QHostAddress &addr, const quint16 &remPort, const QByteArray &datagramArr, const QDateTime &dtReadUtc, QDateTime &dtRemote);
 
@@ -118,9 +103,6 @@ signals:
 public slots:
     void setQueueParams(quint64 queueMaxSize, quint64 secsInQueue, quint64 maximumThreads);
 
-    void setAllowAndBlockList(QStringList allowIpList, QStringList blockThisIp);
-
-    void blockThisIP(QString ip);
 
 };
 
