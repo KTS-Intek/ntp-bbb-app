@@ -87,7 +87,8 @@ bool NTPService::startNTPService()
         }
 
         if(!exitLater && !bind(QHostAddress::Any, 123) ){
-            qDebug() << "can't bind port 123 " << errorString() << myParams.dtRelease.isValid();
+            if(myParams.verboseMode)
+                qDebug() << "can't bind port 123 " << errorString() << myParams.dtRelease.isValid();
             emit add2systemLogError(tr("Can't bind, port: %1, error: %2")
                                     .arg(QString::number(123))
                                     .arg(errorString()));
