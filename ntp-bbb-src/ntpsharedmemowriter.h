@@ -27,13 +27,13 @@
 
 
 ///[!] sharedmemory
-#include "src/shared/sharedmemowriter.h"
+#include "src/shared/sharedmemowriterapplogbase.h"
 
 
 #include <QHostAddress>
 
 
-class NTPSharedMemoWriter : public SharedMemoWriter
+class NTPSharedMemoWriter : public SharedMemoWriterAppLogBase
 {
     Q_OBJECT
 public:
@@ -42,28 +42,15 @@ public:
 
 
 
-    QStringList getLines(const QString &s);
 
 signals:
 
 public slots:
-    void add2systemLogError(QString err);
 
-    void add2systemLogWarn(QString warn);
-
-    void add2systemLogEvent(QString evnt);
-
-
-    void add2systemLogErrorList(QStringList list);
-
-    void add2systemLogWarnList(QStringList list);
-
-    void add2systemLogEventList(QStringList list);
 
     void add2ipHistory(QList<QHostAddress> lhost, QDateTime dtReadUtc, QList<QDateTime> lDtRemoteUtc, int counter);
 
 
-    void appendLogDataSmart(const QString &key, const QStringList &log);
 
 };
 

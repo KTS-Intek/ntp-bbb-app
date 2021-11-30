@@ -32,51 +32,13 @@
 
 NTPSharedMemoWriter::NTPSharedMemoWriter(const QString &sharedMemoName, const QString &semaName, const QString &write2fileName,
                                          const int &delay, const int &delay2fileMsec, const bool &verboseMode, QObject *parent) :
-    SharedMemoWriter(sharedMemoName, semaName, write2fileName, delay, delay2fileMsec, verboseMode, parent)
+    SharedMemoWriterAppLogBase(sharedMemoName, semaName, write2fileName, delay, delay2fileMsec, verboseMode, parent)
 {
-
+    myLogKeys.logErr = "ntp-err";
+    myLogKeys.logWarn = "ntp-warn";
+    myLogKeys.logEvnt = "ntp-ev";
 }
 
-QStringList NTPSharedMemoWriter::getLines(const QString &s)
-{
-    return QString("%1 %2")
-            .arg(QDateTime::currentDateTime().toString("yyyy/MM/dd hh:mm:ss.zzz"))
-            .arg(s).split("\n");
-}
-
-void NTPSharedMemoWriter::add2systemLogError(QString err)
-{
-    add2systemLogErrorList(getLines(err));
-}
-
-void NTPSharedMemoWriter::add2systemLogWarn(QString warn)
-{
-    add2systemLogWarnList(getLines(warn));
-
-}
-
-void NTPSharedMemoWriter::add2systemLogEvent(QString evnt)
-{
-    add2systemLogEventList(getLines(evnt));
-
-}
-
-void NTPSharedMemoWriter::add2systemLogErrorList(QStringList list)
-{
-    appendLogDataSmart("ntp-err", list);
-}
-
-void NTPSharedMemoWriter::add2systemLogWarnList(QStringList list)
-{
-    appendLogDataSmart("ntp-warn", list);
-
-}
-
-void NTPSharedMemoWriter::add2systemLogEventList(QStringList list)
-{
-    appendLogDataSmart("ntp-ev", list);
-
-}
 
 void NTPSharedMemoWriter::add2ipHistory(QList<QHostAddress> lhost, QDateTime dtReadUtc, QList<QDateTime> lDtRemoteUtc, int counter)
 {
@@ -95,10 +57,3 @@ void NTPSharedMemoWriter::add2ipHistory(QList<QHostAddress> lhost, QDateTime dtR
          qDebug() << "ntp-lastip" << l;
 }
 
-void NTPSharedMemoWriter::appendLogDataSmart(const QString &key, const QStringList &log)
-{
-    appendLogData(key, log, "\n", 500);
-    if(verboseMode)
-        qDebug() << key << log;
-
-}
