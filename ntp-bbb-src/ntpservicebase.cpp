@@ -23,6 +23,7 @@
 
 #include "ntpservicebase.h"
 
+#include <QElapsedTimer>
 
 ///[!] ntp-bbb
 #include "ntp-bbb-src/ntpprotocolhelper.h"
@@ -115,7 +116,7 @@ bool NTPServiceBase::mReadyReadF()
 
     int counter = 0;
 
-    QTime timeGlobal;
+    QElapsedTimer timeGlobal;
     timeGlobal.start();
 
     for(int i = 0; i < 100 && timeGlobal.elapsed() < 500 && hasPendingDatagrams() && counter < 10; i++) {
